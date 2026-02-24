@@ -1,11 +1,14 @@
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import TenderAnalysisForm from "@/components/TenderAnalysisForm";
 import RiskScoreCard from "@/components/RiskScoreCard";
 import TenderDetail from "@/components/TenderDetail";
 import StatsPanel from "@/components/StatsPanel";
+import AIResultPanel from "@/components/AIResultPanel";
 import { mockTenders, TenderAnalysis } from "@/lib/mockData";
 
 const Index = () => {
@@ -13,6 +16,8 @@ const Index = () => {
   const [selectedTender, setSelectedTender] = useState<TenderAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [aiResult, setAiResult] = useState<any>(null);
+  const { toast } = useToast();
 
   const analysisRef = useRef<HTMLDivElement>(null);
   const dashboardRef = useRef<HTMLDivElement>(null);
@@ -30,15 +35,39 @@ const Index = () => {
     }
   };
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async (tenderText: string) => {
     setIsAnalyzing(true);
     setShowResults(false);
+    setAiResult(null);
     setSelectedTender(null);
-    setTimeout(() => {
+
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-tender", {
+        body: { tenderData: tenderText },
+      });
+
+      if (error) throw error;
+
+      if (data?.success && data?.analysis) {
+        setAiResult(data.analysis);
+        setShowResults(true);
+        toast({
+          title: "Талдау аяқталды",
+          description: `Тәуекел деңгейі: ${data.analysis.riskScore}/100`,
+        });
+      } else if (data?.error) {
+        throw new Error(data.error);
+      }
+    } catch (err: any) {
+      console.error("Analysis error:", err);
+      toast({
+        title: "Қате",
+        description: err.message || "Талдау кезінде қате пайда болды",
+        variant: "destructive",
+      });
+    } finally {
       setIsAnalyzing(false);
-      setShowResults(true);
-      setSelectedTender(mockTenders[0]);
-    }, 2500);
+    }
   };
 
   return (
@@ -58,43 +87,54 @@ const Index = () => {
             className="mb-8"
           >
             <h2 className="text-3xl font-display font-bold text-foreground mb-2">Тендерді талдау</h2>
-            <p className="text-muted-foreground">Самрұқ-Қазына порталынан тендер сілтемесін енгізіп, ЖИ талдау жүргізіңіз</p>
+            <p className="text-muted-foreground">Тендер деректерін енгізіп, жасанды интеллект арқылы тәуекелді бағалаңыз</p>
           </motion.div>
 
           <TenderAnalysisForm onAnalyze={handleAnalyze} isLoading={isAnalyzing} />
 
-          {/* Results */}
+          {/* AI Results */}
+          {showResults && aiResult && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-8"
+            >
+              <AIResultPanel result={aiResult} />
+            </motion.div>
+          )}
+
+          {/* Demo tenders */}
           {showResults && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-8 grid grid-cols-1 lg:grid-cols-5 gap-6"
+              transition={{ delay: 0.3 }}
+              className="mt-12"
             >
-              {/* Tender List */}
-              <div className="lg:col-span-2 space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                  Табылған тендерлер ({mockTenders.length})
-                </h3>
-                {mockTenders.map((tender, i) => (
-                  <RiskScoreCard
-                    key={tender.id}
-                    tender={tender}
-                    index={i}
-                    onSelect={setSelectedTender}
-                    isSelected={selectedTender?.id === tender.id}
-                  />
-                ))}
-              </div>
-
-              {/* Detail Panel */}
-              <div className="lg:col-span-3">
-                {selectedTender ? (
-                  <TenderDetail tender={selectedTender} />
-                ) : (
-                  <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                    Тендерді таңдаңыз
-                  </div>
-                )}
+              <h3 className="text-lg font-display font-semibold text-foreground mb-4">
+                Демо тендерлер (үлгі деректер)
+              </h3>
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                <div className="lg:col-span-2 space-y-3">
+                  {mockTenders.map((tender, i) => (
+                    <RiskScoreCard
+                      key={tender.id}
+                      tender={tender}
+                      index={i}
+                      onSelect={setSelectedTender}
+                      isSelected={selectedTender?.id === tender.id}
+                    />
+                  ))}
+                </div>
+                <div className="lg:col-span-3">
+                  {selectedTender ? (
+                    <TenderDetail tender={selectedTender} />
+                  ) : (
+                    <div className="flex items-center justify-center h-64 text-muted-foreground text-sm border border-dashed border-border rounded-lg">
+                      Тендерді таңдаңыз
+                    </div>
+                  )}
+                </div>
               </div>
             </motion.div>
           )}
