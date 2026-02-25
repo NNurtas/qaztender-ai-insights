@@ -9,7 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 
 interface TenderAnalysisFormProps {
   onAnalyze: (tenderText: string) => void;
+  onScrapeAndAnalyze: (url: string) => void;
   isLoading: boolean;
+  isScraping: boolean;
 }
 
 const SAMPLE_TENDER = `Тендер №SKZ-2026-001502
@@ -34,7 +36,7 @@ const SAMPLE_TENDER = `Тендер №SKZ-2026-001502
 - Тек Астана қаласында тіркелген компаниялар
 - Жарғылық капиталы кемінде 500 млн ₸`;
 
-const TenderAnalysisForm = ({ onAnalyze, isLoading }: TenderAnalysisFormProps) => {
+const TenderAnalysisForm = ({ onAnalyze, onScrapeAndAnalyze, isLoading, isScraping }: TenderAnalysisFormProps) => {
   const [url, setUrl] = useState("");
   const [tenderText, setTenderText] = useState("");
   const [activeTab, setActiveTab] = useState("text");
@@ -43,8 +45,7 @@ const TenderAnalysisForm = ({ onAnalyze, isLoading }: TenderAnalysisFormProps) =
     if (activeTab === "text") {
       onAnalyze(tenderText);
     } else {
-      // URL mode — for now, instruct user to paste text
-      onAnalyze(tenderText || url);
+      onScrapeAndAnalyze(url);
     }
   };
 
@@ -108,7 +109,7 @@ const TenderAnalysisForm = ({ onAnalyze, isLoading }: TenderAnalysisFormProps) =
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                ⚠️ Сілтеме арқылы автоматты скрейпинг әзірленуде. Қазір тендер мәтінін қолмен енгізіңіз.
+                🔗 URL енгізіп, деректерді автоматты скрейпинг жасаңыз. Содан кейін ЖИ талдау автоматты басталады.
               </p>
             </div>
           </TabsContent>
@@ -127,10 +128,15 @@ const TenderAnalysisForm = ({ onAnalyze, isLoading }: TenderAnalysisFormProps) =
           </div>
           <Button
             onClick={handleAnalyze}
-            disabled={isLoading || (activeTab === "text" ? !tenderText.trim() : !url.trim())}
+            disabled={(isLoading || isScraping) || (activeTab === "text" ? !tenderText.trim() : !url.trim())}
             className="gradient-gold text-accent-foreground font-semibold h-12 px-8 hover:shadow-lg transition-all"
           >
-            {isLoading ? (
+            {isScraping ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Скрейпинг...
+              </>
+            ) : isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ЖИ талдауда...
@@ -138,7 +144,7 @@ const TenderAnalysisForm = ({ onAnalyze, isLoading }: TenderAnalysisFormProps) =
             ) : (
               <>
                 <Search className="mr-2 h-4 w-4" />
-                ЖИ талдау
+                {activeTab === "url" ? "Скрейпинг + Талдау" : "ЖИ талдау"}
               </>
             )}
           </Button>

@@ -16,6 +16,7 @@ const Index = () => {
   const [currentSection, setCurrentSection] = useState("hero");
   const [selectedTender, setSelectedTender] = useState<TenderAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isScraping, setIsScraping] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [aiResult, setAiResult] = useState<any>(null);
   const { toast } = useToast();
@@ -75,6 +76,43 @@ const Index = () => {
     }
   };
 
+  const handleScrapeAndAnalyze = async (url: string) => {
+    setIsScraping(true);
+    setShowResults(false);
+    setAiResult(null);
+    setSelectedTender(null);
+
+    try {
+      const { data: scrapeData, error: scrapeError } = await supabase.functions.invoke("scrape-tender", {
+        body: { url },
+      });
+
+      if (scrapeError) throw scrapeError;
+
+      if (!scrapeData?.success || !scrapeData?.content) {
+        throw new Error(scrapeData?.error || "Скрейпинг сәтсіз аяқталды");
+      }
+
+      toast({
+        title: "Скрейпинг сәтті",
+        description: `${scrapeData.content.length} таңба алынды. Талдау басталуда...`,
+      });
+
+      setIsScraping(false);
+
+      // Now analyze the scraped content
+      await handleAnalyze(scrapeData.content);
+    } catch (err: any) {
+      console.error("Scrape error:", err);
+      toast({
+        title: "Скрейпинг қатесі",
+        description: err.message || "URL деректерін алу мүмкін болмады",
+        variant: "destructive",
+      });
+      setIsScraping(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar currentSection={currentSection} onNavigate={handleNavigate} />
@@ -95,7 +133,7 @@ const Index = () => {
             <p className="text-muted-foreground">Тендер деректерін енгізіп, жасанды интеллект арқылы тәуекелді бағалаңыз</p>
           </motion.div>
 
-          <TenderAnalysisForm onAnalyze={handleAnalyze} isLoading={isAnalyzing} />
+          <TenderAnalysisForm onAnalyze={handleAnalyze} onScrapeAndAnalyze={handleScrapeAndAnalyze} isLoading={isAnalyzing} isScraping={isScraping} />
 
           {/* AI Results */}
           {showResults && aiResult && (
