@@ -123,6 +123,38 @@ serve(async (req) => {
 
     console.log("Analysis complete, risk score:", parsed.riskScore);
 
+    // Save to database
+    try {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const saveRes = await fetch(`${supabaseUrl}/rest/v1/tender_analyses`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
+          Prefer: "return=representation",
+        },
+        body: JSON.stringify({
+          tender_text: tenderData.substring(0, 5000),
+          risk_score: parsed.riskScore,
+          risk_level: parsed.riskLevel,
+          summary: parsed.summary,
+          recommendation: parsed.recommendation,
+          flags: parsed.flags,
+        }),
+      });
+      if (!saveRes.ok) {
+        console.error("Failed to save analysis:", await saveRes.text());
+      } else {
+        const saved = await saveRes.json();
+        parsed.id = saved[0]?.id;
+        console.log("Analysis saved with id:", parsed.id);
+      }
+    } catch (saveErr) {
+      console.error("Save error:", saveErr);
+    }
+
     return new Response(
       JSON.stringify({ success: true, analysis: parsed }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -9,6 +9,7 @@ import RiskScoreCard from "@/components/RiskScoreCard";
 import TenderDetail from "@/components/TenderDetail";
 import StatsPanel from "@/components/StatsPanel";
 import AIResultPanel from "@/components/AIResultPanel";
+import AnalysisHistory from "@/components/AnalysisHistory";
 import { mockTenders, TenderAnalysis } from "@/lib/mockData";
 
 const Index = () => {
@@ -20,12 +21,15 @@ const Index = () => {
   const { toast } = useToast();
 
   const analysisRef = useRef<HTMLDivElement>(null);
+  const historyRef = useRef<HTMLDivElement>(null);
   const dashboardRef = useRef<HTMLDivElement>(null);
+  const [historyKey, setHistoryKey] = useState(0);
 
   const handleNavigate = (section: string) => {
     setCurrentSection(section);
     const refs: Record<string, React.RefObject<HTMLDivElement>> = {
       analysis: analysisRef,
+      history: historyRef,
       dashboard: dashboardRef,
     };
     if (refs[section]?.current) {
@@ -51,6 +55,7 @@ const Index = () => {
       if (data?.success && data?.analysis) {
         setAiResult(data.analysis);
         setShowResults(true);
+        setHistoryKey((k) => k + 1);
         toast({
           title: "Талдау аяқталды",
           description: `Тәуекел деңгейі: ${data.analysis.riskScore}/100`,
@@ -141,7 +146,23 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Dashboard Section */}
+      {/* History Section */}
+      <section ref={historyRef} className="py-16 px-6" id="history">
+        <div className="container mx-auto max-w-6xl">
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="mb-8"
+          >
+            <h2 className="text-3xl font-display font-bold text-foreground mb-2">Талдау тарихы</h2>
+            <p className="text-muted-foreground">Бұрынғы талдау нәтижелері автоматты сақталады</p>
+          </motion.div>
+
+          <AnalysisHistory key={historyKey} />
+        </div>
+      </section>
+
       <section ref={dashboardRef} className="py-16 px-6 bg-muted/30" id="dashboard">
         <div className="container mx-auto max-w-6xl">
           <motion.div
