@@ -9,6 +9,7 @@ const Navbar = ({ currentSection, onNavigate }: NavbarProps) => {
   const links = [
     { id: "hero", label: "Басты бет" },
     { id: "analysis", label: "Талдау" },
+    { id: "history", label: "Тарих" },
     { id: "dashboard", label: "Дашборд" },
   ];
 

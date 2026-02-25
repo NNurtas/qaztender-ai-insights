@@ -14,7 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      tender_analyses: {
+        Row: {
+          created_at: string
+          flags: Json | null
+          id: string
+          recommendation: string | null
+          risk_level: string
+          risk_score: number
+          summary: string | null
+          tender_text: string
+          tender_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          flags?: Json | null
+          id?: string
+          recommendation?: string | null
+          risk_level?: string
+          risk_score?: number
+          summary?: string | null
+          tender_text: string
+          tender_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          flags?: Json | null
+          id?: string
+          recommendation?: string | null
+          risk_level?: string
+          risk_score?: number
+          summary?: string | null
+          tender_text?: string
+          tender_url?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
